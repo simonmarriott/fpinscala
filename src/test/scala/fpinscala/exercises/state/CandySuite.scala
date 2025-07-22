@@ -10,7 +10,7 @@ import fpinscala.exercises.state.Input.*
 import fpinscala.exercises.state.State.*
 import fpinscala.exercises.state.{ Input, Machine, State }
 
-class CandySuite extends PropSuite:
+class   CandySuite extends PropSuite:
   private val genPosInt: Gen[Int]    = Gen.choose(1, 1000)
   private val genNonNegInt: Gen[Int] = Gen.choose(0, 1000)
   private val genInput: Gen[Input] =

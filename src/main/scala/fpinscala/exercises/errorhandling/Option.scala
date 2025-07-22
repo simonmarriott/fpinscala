@@ -1,7 +1,8 @@
 package fpinscala.exercises.errorhandling
 
 // Hide std library `Option` since we are writing our own in this chapter
-import scala.{Option as _, Some as _, None as _}
+
+import scala.{None as _, Option as _, Some as _}
 
 enum Option[+A]:
   case Some(get: A)
@@ -11,7 +12,7 @@ enum Option[+A]:
     case None => None
     case Some(a) => Some(f(a))
 
-  def getOrElse[B>:A](default: => B): B = this match
+  def getOrElse[B >: A](default: => B): B = this match
     case None => default
     case Some(a) => a
 
@@ -19,7 +20,7 @@ enum Option[+A]:
     case None => None
     case Some(a) => f(a)
 
-  def orElse[B>:A](ob: => Option[B]): Option[B] = this match
+  def orElse[B >: A](ob: => Option[B]): Option[B] = this match
     case None => ob
     case Some(a) => Some(a)
 
@@ -46,20 +47,20 @@ object Option:
     if xs.isEmpty then None
     else Some(xs.sum / xs.length)
 
-  def variance(xs: Seq[Double]): Option[Double] =
-    val m = mean(xs)
-    mean(xs.flatMap(
-      x => Seq(Math.pow(x - m.getOrElse(0.0), 2)))
-    )
+  def variance(xs: Seq[Double]): Option[Double] = {
+    val mn = mean(xs)
+    mn match {
+      case None => None
+      case Some(m) => mean(xs.flatMap(x => List(Math.pow(x - m, 2))))
+    }
 
-  def map2[A,B,C](a: Option[A], b: Option[B])(f: (A, B) => C): Option[C] = (a, b) match
-    case (None, _) => None
-    case (_, None) => None
-    case (Some(a), Some(b)) => Some(f(a,b))
+  }
+
+  def map2[A, B, C](a: Option[A], b: Option[B])(f: (A, B) => C): Option[C] =
+    a.flatMap(aa => b.map(bb => f(aa, bb)))
 
   def sequence[A](as: List[Option[A]]): Option[List[A]] =
-//    as.foldLeft(Some(Nil: List[A]))((b, optA) => map2(b, optA)(_ :+ _))
-    traverse(as)(a => a)
-    
+    as.foldLeft(Some(Nil: List[A]))((ob, oa) => map2(oa, ob)((a, b) => b :+ a))
+
   def traverse[A, B](as: List[A])(f: A => Option[B]): Option[List[B]] =
-    as.foldLeft(Some(Nil: List[B]))((b, a) => map2(b, f(a))((bb, aa) => bb :+ aa))
+    as.foldLeft(Some(Nil: List[B]))((ob, a) => map2(f(a), ob)((b1, b2) => b2 :+ b1))

@@ -118,29 +118,33 @@ object Nonblocking:
 
     /* The code here is very similar. */
     def choiceN[A](p: Par[Int])(ps: List[Par[A]]): Par[A] =
-      ???
+      es => cb => p(es): i =>
+        eval(es)(ps(i % ps.length)(es)(cb))
 
     def choiceViaChoiceN[A](a: Par[Boolean])(ifTrue: Par[A], ifFalse: Par[A]): Par[A] =
-      ???
+      choiceN(a.map(b => if b then 0 else 1))(List(ifTrue, ifFalse))
 
     def choiceMap[K, V](p: Par[K])(ps: Map[K, Par[V]]): Par[V] =
-      ???
+      es => cb => p(es): k =>
+        eval(es)(ps(k)(es)(cb))
 
     /* `chooser` is usually called `flatMap` or `bind`. */
     def chooser[A, B](p: Par[A])(f: A => Par[B]): Par[B] =
-      ???
+      es => cb => p(es): a =>
+        eval(es)(f(a)(es)(cb))
 
     def choiceViaFlatMap[A](p: Par[Boolean])(f: Par[A], t: Par[A]): Par[A] =
-      ???
+      chooser(p)(b => if b then t else f)
 
     def choiceNViaFlatMap[A](p: Par[Int])(choices: List[Par[A]]): Par[A] =
-      ???
+      chooser(p)(n => choices(n % choices.length))
 
     def join[A](p: Par[Par[A]]): Par[A] =
-      ???
+      es => cb => p(es): pa =>
+        eval(es)(pa(es)(cb))
 
     def joinViaFlatMap[A](a: Par[Par[A]]): Par[A] =
-      ???
+      chooser(a)(pa => pa)
 
     def flatMapViaJoin[A,B](p: Par[A])(f: A => Par[B]): Par[B] =
-      ???
+      join(p.map(f))

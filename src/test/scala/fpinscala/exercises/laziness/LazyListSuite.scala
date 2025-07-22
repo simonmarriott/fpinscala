@@ -55,19 +55,19 @@ class LazyListSuite extends PropSuite:
       assertEquals(lazyList.forAll(_ != n), !lazyList.toList.contains(n))
 
   test("LazyList.map")(genSmallInt ** genLazyList):
-    case n ** lazyList =>
+      case n ** lazyList =>
       assertEquals(lazyList.map(_ + n).toList, lazyList.toList.map(_ + n))
 
   test("LazyList.filter")(genSmallInt ** genLazyList):
-    case n ** lazyList =>
+      case n ** lazyList =>
       assertEquals(lazyList.filter(_ != n).toList, lazyList.toList.filter(_ != n))
 
   test("LazyList.append")(genLazyList ** genLazyList):
-    case first ** second =>
+      case first ** second =>
       assertEquals(first.append(second).toList, first.toList ++ second.toList)
 
   test("LazyList.flatMap")(genSmallInt ** genLazyList):
-    case n ** lazyList =>
+      case n ** lazyList =>
       assertEquals(lazyList.flatMap(a => LazyList(a + n)).toList, lazyList.toList.flatMap(a => List(a + n)))
 
   test("LazyList.ones")(genMidInt): n =>
@@ -103,25 +103,26 @@ class LazyListSuite extends PropSuite:
   test("LazyList.onesViaUnfold")(genMidInt): n =>
     assertEquals(onesViaUnfold.take(n).toList, List.fill(n)(1))
 
+
   test("LazyList.mapViaUnfold")(genSmallInt ** genLazyList):
     case n ** lazyList =>
       assertEquals(lazyList.mapViaUnfold(_ + n).toList, lazyList.toList.map(_ + n))
-
   test("LazyList.takeViaUnfold")(genSmallInt ** genLazyList):
     case n ** lazyList =>
-      assertEquals(lazyList.takeViaUnfold(n).toList, lazyList.toList.take(n))
+        assertEquals(lazyList.takeViaUnfold(n).toList, lazyList.toList.take(n))
 
   test("LazyList.takeWhileViaUnfold")(genSmallInt ** genLazyList):
     case n ** lazyList =>
-      assertEquals(lazyList.takeWhileViaUnfold(_ != n).toList, lazyList.toList.takeWhile(_ != n))
+        assertEquals(lazyList.takeWhileViaUnfold(_ != n).toList, lazyList.toList.takeWhile(_ != n))
 
   test("LazyList.zipWith")(genLazyList ** genLazyList):
     case first ** second =>
-      assertEquals(first.zipWith(second)(_ + _).toList, first.toList.zip(second.toList).map(_ + _))
+        assertEquals(first.zipWith(second)(_ + _).toList, first.toList.zip(second.toList).map(_ + _))
 
   test("LazyList.zipAll")(genLazyList ** genLazyList):
     case first ** second =>
       assertEquals(first.zipAll(second).toList, first.toList.map(Some(_)).zipAll(second.toList.map(Some(_)), None, None))
+
 
   test("LazyList.startsWith")(genLazyList ** genLazyList):
     case list1 ** list2 =>
@@ -133,7 +134,6 @@ class LazyListSuite extends PropSuite:
     val list = lazyList.toList
     val expected = (0 to list.length).map(i => list.drop(i)).toList
     assertEquals(lazyList.tails.toList.map(_.toList), expected)
-
 
 
   test("LazyList.hasSubsequence")(genSmallInt ** genLazyList):
