@@ -4,7 +4,7 @@ import fpinscala.exercises.state.*
 import fpinscala.exercises.state.RNG.double
 import fpinscala.exercises.testing.Prop.Result.{Falsified, Passed}
 
-import scala.annotation.tailrec
+import scala.annotation.{tailrec, targetName}
 
 /*
 The library developed in this chapter goes through several iterations. This file is just the
@@ -112,6 +112,10 @@ object Gen:
     def map2[B,C](that: Gen[B])(f: (A, B) => C): Gen[C] =
       State.map2(self)(that)(f)
 
+    @targetName("product")
+    def **[B](gb: Gen[B]): Gen[(A, B)] =
+      map2(gb)((_, _))
+
     def list: SGen[List[A]] =
       n => listOfN(n)
 
@@ -159,7 +163,10 @@ object Gen:
 
   extension [A](self: Gen[A])
     def unsized: SGen[A] = _ => self
-
+    
+  object `**`:
+    def unapply[A, B](p: (A, B)): Option[(A, B)] = Some(p)
+    
 //trait Gen[A]:
 //  def map[B](f: A => B): Gen[B] = ???
 //  def flatMap[B](f: A => Gen[B]): Gen[B] = ???
