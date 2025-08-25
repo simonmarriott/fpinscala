@@ -115,13 +115,12 @@ class ListSuite extends PropSuite:
       val expectedSList = listToScalaList(list1).zip(listToScalaList(list2)).map:
         case (a, b) => a + b
       assertEquals(List.addPairwise(list1, list2), scalaListToList(expectedSList))
-
-  /*
+  
   test("List.zipWith")(genIntList ** genIntList):
     case list1 ** list2 =>
       val expectedSList = listToScalaList(list1).zip(listToScalaList(list2)).map(_ * _)
       assertEquals(List.zipWith(list1, list2, _ * _), scalaListToList(expectedSList))
-   */
+   
 
   test("List.hasSubsequence")(genIntList ** genSmallNum):
     case list ** n =>
