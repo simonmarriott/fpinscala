@@ -2,9 +2,9 @@ package fpinscala.exercises.parallelism
 
 import java.util.concurrent.*
 
-object Par:
-  opaque type Par[A] = ExecutorService => Future[A]
+opaque type Par[A] = ExecutorService => Future[A]
 
+object Par:
   extension [A](pa: Par[A]) def run(s: ExecutorService): Future[A] = pa(s)
 
   def unit[A](a: A): Par[A] =
@@ -106,13 +106,13 @@ object Par:
 
   def choiceN[A](n: Par[Int])(choices: List[Par[A]]): Par[A] =
     es =>
-      val ind = n.run(es).get // Full source files
+      val ind = n.run(es).get % choices.size // Full source files
       choices(ind).run(es)
 
-  def choiceViaChoiceN[A](a: Par[Boolean])(ifTrue: Par[A], ifFalse: Par[A]): Par[A] =
-    choiceN(a.map(b => if b then 0 else 1))(List(ifTrue, ifFalse))
+  def choiceViaChoiceN[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
+    choiceN(cond.map(b => if b then 0 else 1))(List(t, f))
 
-  def choiceMap[K, V](key: Par[K])(choices: Map[K,Par[V]]): Par[V] =
+  def choiceMap[K, V](key: Par[K])(choices: Map[K, Par[V]]): Par[V] =
     es =>
       val k = key.run(es).get
       choices(k).run(es)
@@ -125,21 +125,21 @@ object Par:
   /* `chooser` is usually called `flatMap` or `bind`. */
   extension [A](pa: Par[A]) def flatMap[B](choices: A => Par[B]): Par[B] =
     es =>
-      val k = pa.run(es).get
-      choices(k).run(es)
+      val a = pa.run(es).get
+      choices(a).run(es)
 
   def choiceViaFlatMap[A](p: Par[Boolean])(f: Par[A], t: Par[A]): Par[A] =
-    flatMap(p)(b => if b then t else f)
+    p.flatMap(b => if b then t else f)
 
   def choiceNViaFlatMap[A](p: Par[Int])(choices: List[Par[A]]): Par[A] =
-    flatMap(p)(i => choices(i))
+    p.flatMap(i => choices(i))
 
   // see nonblocking implementation in `Nonblocking.scala`
-  def join[A](a: Par[Par[A]]): Par[A] =
-    es => a.run(es).get().run(es)
+  def join[A](ppa: Par[Par[A]]): Par[A] =
+    es => ppa.run(es).get().run(es)
 
-  def joinViaFlatMap[A](a: Par[Par[A]]): Par[A] =
-    flatMap(a)(x => x)
+  def joinViaFlatMap[A](ppa: Par[Par[A]]): Par[A] =
+    ppa.flatMap(identity)
 
   extension [A](pa: Par[A]) def flatMapViaJoin[B](f: A => Par[B]): Par[B] =
     join(pa.map(f))

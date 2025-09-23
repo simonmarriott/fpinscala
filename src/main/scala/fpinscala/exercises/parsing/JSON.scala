@@ -9,7 +9,7 @@ enum JSON:
   case JObject(get: Map[String, JSON])
 
 object JSON:
-  def jsonParser[Err, Parser[+_]](P: Parsers[Err, Parser]): Parser[JSON] =
+  def jsonParser[Err, Parser[+_]](P: Parsers[Parser]): Parser[JSON] =
     import P.*
     val spaces = char(' ').many.slice
     ???

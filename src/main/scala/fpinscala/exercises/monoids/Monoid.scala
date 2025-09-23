@@ -1,7 +1,7 @@
 package fpinscala.exercises.monoids
 
 import fpinscala.exercises.monoids.Monoid.WC.{Part, Stub}
-import fpinscala.exercises.parallelism.Nonblocking.*
+import fpinscala.exercises.parallelism.Nonblocking.Par
 
 trait Monoid[A]:
   def combine(a1: A, a2: A): A
@@ -97,7 +97,7 @@ object Monoid:
     def combine(a: Par[A], b: Par[A]) = a.map2(b)(m.combine)
 
   // we perform the mapping and the reducing both in parallel
-  def parFoldMap[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] =
+  def parFoldMap[A,B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] =
     Par.parMap(as)(f).flatMap: bs =>
       foldMapV(bs, par(m))(b => Par.lazyUnit(b))
 
@@ -119,13 +119,40 @@ object Monoid:
     case Stub(chars: String)
     case Part(lStub: String, words: Int, rStub: String)
 
-  lazy val wcMonoid: Monoid[WC] = new:
-    def combine(wc1: WC, wc2: WC): WC =
-      (wc2, wc2) match
-        case (Part(l1, w1, r1), Part(l2, w2, r2)) => Part(l1, w1 + w2 + 1, r2)
-    def empty: WC = Stub("")
+  val wcMonoid: Monoid[WC] = new:
+    val empty: WC = WC.Stub("")
 
-  def count(s: String): Int = ???
+    def combine(wc1: WC, wc2: WC): WC = (wc1, wc2) match
+      case (WC.Stub(a), WC.Stub(b)) => WC.Stub(a + b)
+      case (WC.Stub(a), WC.Part(l, w, r)) => WC.Part(a + l, w, r)
+      case (WC.Part(l, w, r), WC.Stub(a)) => WC.Part(l, w, r + a)
+      case (WC.Part(l, w, r), WC.Part(l2, w2, r2)) =>
+        WC.Part(l, w + (if (r + l2).isEmpty then 0 else 1) + w2, r2)
+
+  def wcGen: Gen[WC] =
+    val smallString = Gen.choose(0, 10).flatMap(Gen.stringN)
+    val genStub = smallString.map(s => WC.Stub(s))
+    val genPart = for
+      lStub <- smallString
+      words <- Gen.choose(0, 10)
+      rStub <- smallString
+    yield WC.Part(lStub, words, rStub)
+    Gen.union(genStub, genPart)
+
+  val wcMonoidTest: Prop = monoidLaws(wcMonoid, wcGen)
+
+  def count(s: String): Int =
+    // A single character's count. Whitespace does not count,
+    // and non-whitespace starts a new Stub.
+    def wc(c: Char): WC =
+      if c.isWhitespace then
+        WC.Part("", 0, "")
+      else
+        WC.Stub(c.toString)
+    def unstub(s: String) = if s.isEmpty then 0 else 1
+    foldMapV(s.toIndexedSeq, wcMonoid)(wc) match
+      case WC.Stub(s) => unstub(s)
+      case WC.Part(l, w, r) => unstub(l) + w + unstub(r)
 
   given productMonoid[A, B](using ma: Monoid[A], mb: Monoid[B]): Monoid[(A, B)] with
     def combine(x: (A, B), y: (A, B)) = ???
