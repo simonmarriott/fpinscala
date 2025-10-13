@@ -97,7 +97,7 @@ object Monoid:
     def combine(a: Par[A], b: Par[A]) = a.map2(b)(m.combine)
 
   // we perform the mapping and the reducing both in parallel
-  def parFoldMap[A,B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] =
+  def parFoldMap[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] =
     Par.parMap(as)(f).flatMap: bs =>
       foldMapV(bs, par(m))(b => Par.lazyUnit(b))
 
@@ -149,27 +149,34 @@ object Monoid:
         WC.Part("", 0, "")
       else
         WC.Stub(c.toString)
+
     def unstub(s: String) = if s.isEmpty then 0 else 1
+
     foldMapV(s.toIndexedSeq, wcMonoid)(wc) match
       case WC.Stub(s) => unstub(s)
       case WC.Part(l, w, r) => unstub(l) + w + unstub(r)
 
   given productMonoid[A, B](using ma: Monoid[A], mb: Monoid[B]): Monoid[(A, B)] with
-    def combine(x: (A, B), y: (A, B)) = ???
+    def combine(x: (A, B), y: (A, B)): (A, B) = (ma.combine(x._1, y._1), mb.combine(x._2, y._2))
 
-    val empty = ???
+    val empty = (ma.empty, mb.empty)
 
   given functionMonoid[A, B](using mb: Monoid[B]): Monoid[A => B] with
-    def combine(f: A => B, g: A => B) = ???
+    def combine(f: A => B, g: A => B): A => B = a => mb.combine(f(a), g(a))
 
-    val empty: A => B = a => ???
+    val empty: A => B = a => mb.empty
 
   given mapMergeMonoid[K, V](using mv: Monoid[V]): Monoid[Map[K, V]] with
-    def combine(a: Map[K, V], b: Map[K, V]) = ???
+    def combine(a: Map[K, V], b: Map[K, V]): Map[K, V] =
+      (a.keySet ++ b.keySet).foldLeft(empty): (acc, k) =>
+        acc.updated(k, mv.combine(a.getOrElse(k, mv.empty),
+                                  b.getOrElse(k, mv.empty)))
 
-    val empty = ???
+    val empty: Map[K, V] = Map()
 
-  def bag[A](as: IndexedSeq[A]): Map[A, Int] =
-    ???
+  def bag[A](as: IndexedSeq[A]): Map[A, Int] = {
+    as.foldLeft(Map[A, Int]())((acc, a) =>
+      acc.updated(a, intAddition.combine(1, acc.getOrElse(a, intAddition.empty))))
+  }
 
 end Monoid
