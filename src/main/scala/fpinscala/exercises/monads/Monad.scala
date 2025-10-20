@@ -76,16 +76,16 @@ object Monad:
         Gen.flatMap(fa)(f)
 
   given parMonad: Monad[Par] with
-    def unit[A](a: => A) = ???
+    def unit[A](a: => A) = Par.unit(a)
     extension [A](fa: Par[A])
       override def flatMap[B](f: A => Par[B]): Par[B] =
-        ???
+        Par.flatMapViaJoin(fa)(f)
 
   def parserMonad[P[+_]](p: Parsers[P]): Monad[P] = new:
-    def unit[A](a: => A) = ???
+    def unit[A](a: => A) = p.defaultSucceed(a)
     extension [A](fa: P[A])
       override def flatMap[B](f: A => P[B]): P[B] =
-        ???
+        p.flatMap(fa)(f)
 
   given optionMonad: Monad[Option] with
     def unit[A](a: => A) = ???
