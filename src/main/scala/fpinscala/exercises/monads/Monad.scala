@@ -76,49 +76,49 @@ object Monad:
         Gen.flatMap(fa)(f)
 
   given parMonad: Monad[Par] with
-    def unit[A](a: => A) = Par.unit(a)
+    def unit[A](a: => A): Par[A] = Par.unit(a)
     extension [A](fa: Par[A])
       override def flatMap[B](f: A => Par[B]): Par[B] =
         Par.flatMapViaJoin(fa)(f)
 
   def parserMonad[P[+_]](p: Parsers[P]): Monad[P] = new:
-    def unit[A](a: => A) = p.defaultSucceed(a)
+    def unit[A](a: => A): P[A] = p.defaultSucceed(a)
     extension [A](fa: P[A])
       override def flatMap[B](f: A => P[B]): P[B] =
         p.flatMap(fa)(f)
 
   given optionMonad: Monad[Option] with
-    def unit[A](a: => A) = ???
+    def unit[A](a: => A) = Some(a)
     extension [A](fa: Option[A])
-      override def flatMap[B](f: A => Option[B]) =
-        ???
+      override def flatMap[B](f: A => Option[B]): Option[B] =
+        fa.flatMap(f)
 
   given lazyListMonad: Monad[LazyList] with
-    def unit[A](a: => A) = ???
+    def unit[A](a: => A) = LazyList(a)
     extension [A](fa: LazyList[A])
-      override def flatMap[B](f: A => LazyList[B]) =
-        ???
+      override def flatMap[B](f: A => LazyList[B]): LazyList[B] =
+        fa.flatMap(f)
 
   given listMonad: Monad[List] with
-    def unit[A](a: => A) = ???
+    def unit[A](a: => A) = List(a)
     extension [A](fa: List[A])
       override def flatMap[B](f: A => List[B]) =
-        ???
+        fa.flatMap(f)
 
 end Monad
 
 case class Id[+A](value: A):
   def map[B](f: A => B): Id[B] =
-    ???
+    Id(f(value))
   def flatMap[B](f: A => Id[B]): Id[B] =
-    ???
+    f(value)
 
 object Id:
   given idMonad: Monad[Id] with
-    def unit[A](a: => A) = ???
+    def unit[A](a: => A) = Id(a)
     extension [A](fa: Id[A])
-      override def flatMap[B](f: A => Id[B]) =
-        ???
+      override def flatMap[B](f: A => Id[B]): Id[B] =
+        fa.flatMap(f)
 
 opaque type Reader[-R, +A] = R => A
 
