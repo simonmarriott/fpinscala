@@ -38,33 +38,35 @@ trait Monad[F[_]] extends Functor[F]:
       fa.flatMap(a => fb.map(b => f(a, b)))
 
   def sequence[A](fas: List[F[A]]): F[List[A]] =
-    ???
+    fas.foldRight(unit(List[A]()))((fa, acc) => fa.map2(acc)(_ :: _))
 
   def traverse[A, B](as: List[A])(f: A => F[B]): F[List[B]] =
-    ???
+//    as.foldLeft(unit(List[B]()))((acc, a) => f(a).flatMap(b => acc.flatMap(bs => unit(bs :+ b))))
+    as.foldRight(unit(List[B]()))((a, acc) => f(a).map2(acc)(_ :: _))
 
   def replicateM[A](n: Int, fa: F[A]): F[List[A]] =
-    ???
+    fa.map(a => List.fill(n)(a))
 
   def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] =
-    ???
+    a => f(a).flatMap(b => g(b))
 
   extension [A](fa: F[A])
     def flatMapViaCompose[B](f: A => F[B]): F[B] =
-      ???
+      compose(_ => fa, f)(())
 
   def filterM[A](as: List[A])(f: A => F[Boolean]): F[List[A]] =
-    ???
+    as.foldRight(unit(List[A]()))
+      ((a, acc) => f(a).map2(acc)((bool, filtered) => if bool then a :: filtered else filtered ))
 
   extension [A](ffa: F[F[A]]) def join: F[A] =
-    ???
+    ffa.flatMap(fa => fa)
 
   extension [A](fa: F[A])
     def flatMapViaJoinAndMap[B](f: A => F[B]): F[B] =
-      ???
+      compose(a => fa.map(f), (fb: F[B]) => fb)(())
 
   def composeViaJoinAndMap[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] =
-    ???
+    a => f(a).map(g).join
 
 end Monad      
 
@@ -94,15 +96,15 @@ object Monad:
         fa.flatMap(f)
 
   given lazyListMonad: Monad[LazyList] with
-    def unit[A](a: => A) = LazyList(a)
+    def unit[A](a: => A): LazyList[A] = LazyList(a)
     extension [A](fa: LazyList[A])
       override def flatMap[B](f: A => LazyList[B]): LazyList[B] =
         fa.flatMap(f)
 
   given listMonad: Monad[List] with
-    def unit[A](a: => A) = List(a)
+    def unit[A](a: => A): List[A] = List(a)
     extension [A](fa: List[A])
-      override def flatMap[B](f: A => List[B]) =
+      override def flatMap[B](f: A => List[B]): List[B] =
         fa.flatMap(f)
 
 end Monad
@@ -123,11 +125,14 @@ object Id:
 opaque type Reader[-R, +A] = R => A
 
 object Reader:
+  def ask[R]: Reader[R, R] = r => r
+  def apply[R,A](f: R => A): Reader[R, A] = f
+
   extension [R, A](ra: Reader[R, A])
     def run(r: R): A = ra(r)
 
   given readerMonad[R]: Monad[Reader[R, _]] with
-    def unit[A](a: => A): Reader[R, A] = ???
+    def unit[A](a: => A): Reader[R, A] = _ => a
     extension [A](fa: Reader[R, A])
-      override def flatMap[B](f: A => Reader[R, B]) =
-        ???
+      override def flatMap[B](f: A => Reader[R, B]): R => B =
+        r => f(fa(r)).run(r)
