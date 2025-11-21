@@ -1,6 +1,7 @@
 package fpinscala.exercises
 package monads
 
+import fpinscala.exercises.applicative.Applicative
 import parsing.*
 import testing.*
 import parallelism.*
@@ -24,28 +25,28 @@ object Functor:
     extension [A](as: List[A])
       def map[B](f: A => B): List[B] = as.map(f)
 
-trait Monad[F[_]] extends Functor[F]:
+trait Monad[F[_]] extends Applicative[F[_]]:
   def unit[A](a: => A): F[A]
 
   extension [A](fa: F[A])
     def flatMap[B](f: A => F[B]): F[B] =
       fa.map(f).join
     
-    def map[B](f: A => B): F[B] =
+    override def map[B](f: A => B): F[B] =
       fa.flatMap(a => unit(f(a)))
 
-    def map2[B, C](fb: F[B])(f: (A, B) => C): F[C] =
+    override def map2[B, C](fb: F[B])(f: (A, B) => C): F[C] =
       fa.flatMap(a => fb.map(b => f(a, b)))
 
-  def sequence[A](fas: List[F[A]]): F[List[A]] =
-    fas.foldRight(unit(List[A]()))((fa, acc) => fa.map2(acc)(_ :: _))
+//  def sequence[A](fas: List[F[A]]): F[List[A]] =
+//    fas.foldRight(unit(List[A]()))((fa, acc) => fa.map2(acc)(_ :: _))
 
-  def traverse[A, B](as: List[A])(f: A => F[B]): F[List[B]] =
-//    as.foldLeft(unit(List[B]()))((acc, a) => f(a).flatMap(b => acc.flatMap(bs => unit(bs :+ b))))
-    as.foldRight(unit(List[B]()))((a, acc) => f(a).map2(acc)(_ :: _))
+//  override def traverse[A, B](as: List[A])(f: A => F[B]): F[List[B]] =
+////    as.foldLeft(unit(List[B]()))((acc, a) => f(a).flatMap(b => acc.flatMap(bs => unit(bs :+ b))))
+//    as.foldRight(unit(List[B]()))((a, acc) => f(a).map2(acc)(_ :: _))
 
-  def replicateM[A](n: Int, fa: F[A]): F[List[A]] =
-    fa.map(a => List.fill(n)(a))
+//  override def replicateM[A](n: Int, fa: F[A]): F[List[A]] =
+//    fa.map(a => List.fill(n)(a))
 
   def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] =
     a => f(a).flatMap(b => g(b))
