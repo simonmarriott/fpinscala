@@ -26,7 +26,20 @@ object Functor:
       def map[B](f: A => B): List[B] = as.map(f)
 
 trait Monad[F[_]] extends Applicative[F[_]]:
+  self =>
   def unit[A](a: => A): F[A]
+
+//  def compose[G[_]](G: Monad[G]): Monad[[x] =>> F[G[x]]] = new:
+//    def unit[A](a: => A): F[G[A]] = self.unit(G.unit(a))
+//    extension [A](fga: F[G[A]])
+//      override def flatMap[B](fgb: F[G[B]]): F[G[B]] =
+//        self.flatMap(fga)(ga =>
+//          G.flatMap(ga)(a =>
+//            G.flatMap(G.unit(a))(b =>
+//              fgb
+//            )
+//          )
+//        )
 
   extension [A](fa: F[A])
     def flatMap[B](f: A => F[B]): F[B] =
@@ -106,6 +119,12 @@ object Monad:
     def unit[A](a: => A): List[A] = List(a)
     extension [A](fa: List[A])
       override def flatMap[B](f: A => List[B]): List[B] =
+        fa.flatMap(f)
+
+  given eitherMonad[E]: Monad[[x] =>> Either[E, x]] with
+    def unit[A](a: => A): Either[E, A] = Right(a)
+    extension [A](fa: Either[E, A])
+      override def flatMap[B](f: A => Either[E, B]): Either[E, B] =
         fa.flatMap(f)
 
 end Monad
