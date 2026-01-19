@@ -33,10 +33,15 @@ trait Traverse[F[_]] extends Functor[F], Foldable[F]:
       fa.traverse[Const[B, _], Nothing](f)
 
     override def foldLeft[B](acc: B)(f: (B, A) => B): B =
-      ???
+      fa.mapAccum(acc)((a, b) => ((), f(b, a)))(1)
 
     override def toList: List[A] =
-      ???
+      fa.traverse(a =>
+        for
+          as <- State.get[List[A]]
+          _ <- State.set(a :: as)
+        yield ()
+      ).run(Nil)(1).reverse
 
     def mapAccum[S, B](s: S)(f: (A, S) => (B, S)): (F[B], S) =
       fa.traverse(a =>
@@ -51,15 +56,15 @@ trait Traverse[F[_]] extends Functor[F], Foldable[F]:
       fa.mapAccum(0)((a, s) => ((a, s), s + 1))(0)
 
     def reverse: F[A] =
-      ???
+      fa.mapAccum(fa.toList.reverse)((_, as) => (as.head, as.tail))(0)
 
     def fuse[M[_], N[_], B](f: A => M[B], g: A => N[B])(using m: Applicative[M], n: Applicative[N]): (M[F[B]], N[F[B]]) =
-      ???
+      fa.traverse[[x] =>> (M[x], N[x]), B](a => (f(a), g(a)))(using m.product(n))
 
   def compose[G[_] : Traverse]: Traverse[[x] =>> F[G[x]]] = new:
     extension [A](fa: F[G[A]])
       override def traverse[H[_] : Applicative, B](f: A => H[B]): H[F[G[B]]] =
-        ???
+        self.traverse(fa)(ga => ga.traverse(f))
 
 case class Tree[+A](head: A, tail: List[Tree[A]])
 
